@@ -1,6 +1,8 @@
+require 'rubygems'
+require 'bundler/setup'
 require 'getoptlong'
 require 'marc'
-TEST_MARC_FIXTURE = "/Users/jstirnaman/dev/voyager/vufindready.voyout.mrc.20140818.mrc"
+TEST_MARC_FIXTURE = "./tests/fixtures/vufindready.voyout.mrc.20140818.mrc"
 TEST_SOURCE = "testingsource"
 @records = []
 
@@ -76,9 +78,9 @@ end
 
 def process_records(source, marc, test)
   source = resolve_source(source)
-  STDOUT.puts "Hola" + source + marc + test
+  STDOUT.puts "Marcfile: " + marc + " from " + source + " Mode: " + test
   reader = MARC::Reader.new(marc)
-  writer = MARC::Writer.new('ebooks_#{source}.marc'
+  writer = MARC::Writer.new('ebooks_#{source}.marc')
   for record in reader
     record.each_by_tag('856') do |fields| 
       fields.find_all do |indicator1, subfield|
@@ -140,6 +142,6 @@ process_records(source, marc, test)
 
 end
 
-do_commandline_opts
+#do_commandline_opts
 
 

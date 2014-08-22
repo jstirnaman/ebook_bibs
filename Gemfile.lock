@@ -1,0 +1,16 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ensure_valid_encoding (0.5.3)
+    marc (0.8.1)
+      ensure_valid_encoding
+      unf
+    unf (0.1.4)
+      unf_ext
+    unf_ext (0.0.6)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  marc
