@@ -76,20 +76,39 @@ end
 @records = record_array
 end
 
+def set_link_text(newrecord)
+  link_text = 'Connect to electronic text'
+  newrecord['fields'].map! do |field|
+    if field.values_at(0, 1, 2) == ['856', '4', '0']
+      field[3].delete_if {|subfield| subfield[0] == 'z'}
+      field[3] << ['z', link_text]
+      field
+    else
+      field
+    end
+  end
+  newrecord
+end
+
 def process_records(source, marc, test)
   source = resolve_source(source)
-  STDOUT.puts "Marcfile: " + marc + " from " + source + " Mode: " + test
+  mode = test ? "Test" : "Normal"
+  marc_out = "ebooks_#{source.gsub(/\s/, '_')}.marc"
+  STDOUT.puts "Marcfile: " + marc + " from " + source + " Mode: " + mode
   reader = MARC::Reader.new(marc)
-  writer = MARC::Writer.new('ebooks_#{source}.marc')
+  writer = MARC::Writer.new(marc_out)
+  counter = 0
   for record in reader
-    record.each_by_tag('856') do |fields| 
-      fields.find_all do |indicator1, subfield|
-         if indicator1 == '4' and subfield['z']
-           puts fields
-         end
-      end
-    end   
+    newrecord = record.to_marchash
+    if newrecord['fields'].assoc('856') 
+      newrecord = set_link_text(newrecord)
+    end
+    writer.write(MARC::Record.new_from_marchash(newrecord))
+    counter += 1
+    STDOUT.puts counter if (counter.modulo(100)).zero?  
   end
+  writer.close
+  STDOUT.puts counter.to_s + " MARC records written to " + marc_out
 end
 
 def do_commandline_opts
@@ -142,6 +161,6 @@ process_records(source, marc, test)
 
 end
 
-#do_commandline_opts
+do_commandline_opts
 
 
