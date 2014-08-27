@@ -22,9 +22,9 @@ SOURCES = {
 }
 
 def resolve_source(source)
-m = SOURCES
-source = source.strip.gsub(/\W/i, "")
-m[source]
+	m = SOURCES
+	source = source.strip.gsub(/\W/i, "")
+	m[source]
 end
 
 def set_link_text(record)
@@ -114,24 +114,24 @@ def do_commandline_opts
 		case opt
 			when '--help'
 				STDOUT.puts <<-EOF
-	ebooks [OPTION] ... MARC-file
+				ebooks [OPTION] ... MARC-file
 
-	-h, --help:
-		 show help
+				-h, --help:
+					 show help
 
-	--source AccessMedicine:
-		 record source, publisher, or vendor. Used as value in MARC tag 710. 
-		 One of: #{SOURCES.keys.join(', ')}
-		 You can add your own name mappings.
+				--source AccessMedicine:
+					 record source, publisher, or vendor. Used as value in MARC tag 710. 
+					 One of: #{SOURCES.keys.join(', ')}
+					 You can add your own name mappings.
 
-	MARC-file or stream from stdin containing a string of MARC records.
-	  ex., 
-	    From a file:
-	      ruby ebooks.rb AccessMedicine.mrc
-	    From stdin:
-	      curl http://www.accessusercenter.com/wp-content/uploads/2014/07/AccessMedicine.mrc | ruby ebooks.rb -s accessmedicine
+				MARC-file or stream from stdin containing a string of MARC records.
+					ex., 
+						From a file:
+							ruby ebooks.rb AccessMedicine.mrc
+						From stdin:
+							curl http://www.accessusercenter.com/wp-content/uploads/2014/07/AccessMedicine.mrc | ruby ebooks.rb -s accessmedicine
 
-				EOF
+							EOF
 			when '--source'
 				source = arg
 			when '--test'
