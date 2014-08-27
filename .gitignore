@@ -1,4 +1,5 @@
-!.gitignore
 tests/fixtures/*.*
 log/*.*
 data/out/*.*
+
+!.gitignore
