@@ -1,12 +1,11 @@
-require 'rubygems'
-require 'bundler/setup'
+require 'stringio'
 require 'getoptlong'
 require 'date'
 require 'marc'
-
+HOME = File.dirname(File.expand_path(__FILE__))
 DATESTAMP =  DateTime.now.strftime('%Y%m%d')
-OUT = "./data/out/"
-LOGFILE = "./log/scn.log"
+OUT = "#{HOME}/data/out/"
+LOGFILE = "#{HOME}/log/scn.log"
 # Normalized MARC Code assigned for your organization. 
 # http://www.loc.gov/marc/organizations/org-search.php
 MARC_CODE = "kum"
@@ -151,11 +150,11 @@ def do_commandline_opts
         marc = StringIO.new(ARGF.read)
       rescue
         STDERR.puts "ebooks could not read input from stdin (try --help)."
-        exit 0
+        exit 1 
       end
     else
       STDERR.puts "ebooks --source is required when reading input from stdin."
-      exit 0
+      exit 1 
     end
   else
     source ||= ARGV[0].split('/').last.gsub(/\..*$/, '')
