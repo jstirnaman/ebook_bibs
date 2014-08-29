@@ -58,7 +58,7 @@ end
 
 def process_records(source, marc, test) 
   source = resolve_source(source) || source
-  marc_out = OUT + "kumc_ebooks_" + source
+  marc_out = OUT + "kumc_ebooks_" + source + ".mrc"
   mode = test ? "Test" : "Normal"
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
