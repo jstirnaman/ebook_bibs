@@ -46,13 +46,13 @@ end
 def add_holding_location(record)
   location = 'dyk.pubpcs'
   classifier = 'E-book'
-  record.append(MARC::DataField.new('852', '', '', ['a', MARC_CODE], ['b', location], ['h', classifier]))
+  record.append(MARC::DataField.new('852', " ", " ", ['a', MARC_CODE], ['b', location], ['h', classifier]))
   record
 end
 
 def add_control_number(record)
   scn = record['001'].value
-  record.append(MARC::DataField.new('035', '', '', ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
+  record.append(MARC::DataField.new('035', " ", " ", ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
   record
 end
 
