@@ -56,6 +56,7 @@ def add_control_number(record)
   record
 end
 
+### Use source to treat records differently based on vendor.
 def process_records(source, marc, test) 
   source = resolve_source(source) || source
   marc_out = OUT + "kumc_ebooks_" + source + ".mrc"
@@ -70,15 +71,12 @@ def process_records(source, marc, test)
   for record in reader
     newrecord = add_control_number(record)
     newrecord = add_holding_location(record)     
-    
-    ### Use source to treat records differently based on vendor.
-    
-		### Uncomment to set link text in 856.
-		### We're going to rely on VuFind instead. ###
-		#     newrecord = set_link_text(record)
-		###
-		
-    writer.write(newrecord)
+    begin
+      writer.write(newrecord)
+    rescue MARC::Exception => e
+      STDERR.puts e.message
+      STDERR.puts e.backtrace.inspect
+    end   
     
     # Log 001 source control number
     logfile.puts record['001'].value
