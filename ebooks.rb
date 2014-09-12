@@ -70,7 +70,10 @@ def process_records(source, marc, test)
   counter = 0
   for record in reader
     newrecord = add_control_number(record)
-    newrecord = add_holding_location(record)     
+    newrecord = add_holding_location(newrecord)
+    # Re-sort the tags in the record after appending fields.
+    newrecord.fields.sort_by!{|f| f.tag}
+          
     begin
       writer.write(newrecord)
     rescue MARC::Exception => e
