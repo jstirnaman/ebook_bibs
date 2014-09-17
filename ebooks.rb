@@ -64,7 +64,7 @@ def process_records(source, marc, test)
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
   end
-  reader = MARC::Reader.new(marc)
+  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :invalid => :replace)
   writer = MARC::Writer.new(marc_out)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
