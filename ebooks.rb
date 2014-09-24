@@ -2,15 +2,20 @@ require 'stringio'
 require 'getoptlong'
 require 'date'
 require 'marc'
+
+### You probably DON'T want to change these:
 HOME = File.dirname(File.expand_path(__FILE__))
 DATESTAMP =  DateTime.now.strftime('%Y%m%d')
 OUT = "#{HOME}/data/out/"
 LOGFILE = "#{HOME}/log/scn.log"
+TEST_SOURCE = "testingsource"
+###
+
+### You probably DO want to change these:
 # Normalized MARC Code assigned for your organization. 
 # http://www.loc.gov/marc/organizations/org-search.php
 MARC_CODE = "kum"
 TEST_MARC_FIXTURE = "./tests/fixtures/vufindready.voyout.mrc.20140818.mrc"
-TEST_SOURCE = "testingsource"
 SOURCES = {
   "testingsource" => "TESTING_SOURCE",
   "accessmedicine" => "Access_Medicine",
@@ -166,6 +171,6 @@ def do_commandline_opts
 
 end
 
-do_commandline_opts
+# do_commandline_opts
 
 
