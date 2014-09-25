@@ -48,6 +48,7 @@ def set_link_text(record)
   end  
 end
 
+## It doesn't appear we need to do this anymore, as of 2014-09-25. Delete if not used since.
 def fix_clinicalkey_links(record)
   newrec = MARC::Record.new()
   newrec.leader = record.leader
@@ -95,9 +96,9 @@ def process_records(source, marc, test)
     # Do record enhancements
     newrecord = add_control_number(record)
     newrecord = add_holding_location(newrecord)
-    if source == "Clinical_Key"
-      newrecord = fix_clinicalkey_links(newrecord)
-    end 
+    # if source == "Clinical_Key"
+    #  newrecord = fix_clinicalkey_links(newrecord)
+    # end 
         
     # Re-sort the tags in the record after appending fields.
     newrecord.fields.sort_by!{|f| f.tag}
