@@ -48,6 +48,20 @@ def set_link_text(record)
   end  
 end
 
+def fix_clinicalkey_links(record)
+  newrec = MARC::Record.new()
+  newrec.append(record.leader)
+  for f in record
+    if f.tag == '856'
+      newfld = f.map{|sf| sf.value = sf.value.gsub(/\/browse\/bookChapter\//, '/browse/book/'); sf}
+      newrec.append(newfld)
+    else
+      newrec.append(f)
+    end
+  end
+ newrec
+end
+
 def add_holding_location(record)
   location = 'dyk.pubpcs'
   classifier = 'E-book'
