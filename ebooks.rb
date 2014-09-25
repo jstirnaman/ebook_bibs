@@ -50,10 +50,12 @@ end
 
 def fix_clinicalkey_links(record)
   newrec = MARC::Record.new()
-  newrec.append(record.leader)
+  newrec.leader = record.leader
   for f in record
     if f.tag == '856'
-      newfld = f.map{|sf| sf.value = sf.value.gsub(/\/browse\/bookChapter\//, '/browse/book/'); sf}
+      subflds = f.map{|sf| sf.value = sf.value.gsub(/\/browse\/bookChapter\//, '/browse/book/'); sf}
+      newfld = MARC::DataField.new(f.tag, f.indicator1, f.indicator2)
+      subflds.each {|sf| newfld.append(sf)}
       newrec.append(newfld)
     else
       newrec.append(f)
@@ -79,13 +81,13 @@ end
 def process_records(source, marc, test) 
   source = resolve_source(source) || source
   # Signify OCLC encoding for import script. 
-  source=="Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
+  source == "Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
   marc_out = OUT + "kumc_ebooks_" + source + extnsn
   mode = test ? "Test" : "Normal"
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
   end
-  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :invalid => :replace, :replace => "")
+  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :internal_encoding => "UTF-8", :invalid => :replace, :replace => "")
   writer = MARC::Writer.new(marc_out)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
