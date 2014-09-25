@@ -78,12 +78,14 @@ end
 ### Use source to treat records differently based on vendor.
 def process_records(source, marc, test) 
   source = resolve_source(source) || source
-  marc_out = OUT + "kumc_ebooks_" + source + ".mrc"
+  # Signify OCLC encoding for import script. 
+  source=="Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
+  marc_out = OUT + "kumc_ebooks_" + source + extnsn
   mode = test ? "Test" : "Normal"
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
   end
-  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :invalid => :replace)
+  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :invalid => :replace, :replace => "")
   writer = MARC::Writer.new(marc_out)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
@@ -185,6 +187,4 @@ def do_commandline_opts
 
 end
 
-# do_commandline_opts
-
-
+do_commandline_opts
