@@ -90,8 +90,13 @@ def process_records(source, marc, test)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
   for record in reader
+    # Do record enhancements
     newrecord = add_control_number(record)
     newrecord = add_holding_location(newrecord)
+    if source == "Clinical_Key"
+      newrecord = fix_clinicalkey_links(newrecord)
+    end 
+        
     # Re-sort the tags in the record after appending fields.
     newrecord.fields.sort_by!{|f| f.tag}
           
