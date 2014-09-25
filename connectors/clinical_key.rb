@@ -35,11 +35,11 @@ def get_clinical_key
 			marc = agent.get(link.href).body
 		end
 	end
-	marc
+  @marc = marc
 end
-
-def put_marc(marc)
-  STDOUT.puts marc
-end
-
-put_marc(get_clinical_key)
+begin
+  get_clinical_key
+  $stdout.print @marc
+rescue Errno::EPIPE
+  exit(74)
+end 
