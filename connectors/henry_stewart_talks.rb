@@ -19,8 +19,8 @@ def get_henry_stewart_talks
 
 	page = agent.get starting_uri
   # Return the link for the previous month's BLSC MARC download
-  months_ago = Date.today << 2
-  marc_uri = page.link_with(:href => /TBLSC.*#{months_ago.strftime('%b')}-#{months_ago.strftime('%Y')}.*zip/)
+  month_ago = Date.today << 1
+  marc_uri = page.link_with(:href => /TBLSC.*#{month_ago.strftime('%b')}-#{month_ago.strftime('%Y')}.*zip/)
   parser = URI::Parser.new
 	parser.join("http://" + page.uri.host, marc_uri.href) unless marc_uri.uri.host
 end
