@@ -2,15 +2,20 @@ require 'stringio'
 require 'getoptlong'
 require 'date'
 require 'marc'
+
+### You probably DON'T want to change these:
 HOME = File.dirname(File.expand_path(__FILE__))
 DATESTAMP =  DateTime.now.strftime('%Y%m%d')
 OUT = "#{HOME}/data/out/"
 LOGFILE = "#{HOME}/log/scn.log"
+TEST_SOURCE = "testingsource"
+###
+
+### You probably DO want to change these:
 # Normalized MARC Code assigned for your organization. 
 # http://www.loc.gov/marc/organizations/org-search.php
 MARC_CODE = "kum"
 TEST_MARC_FIXTURE = "./tests/fixtures/vufindready.voyout.mrc.20140818.mrc"
-TEST_SOURCE = "testingsource"
 SOURCES = {
   "testingsource" => "TESTING_SOURCE",
   "accessmedicine" => "Access_Medicine",
@@ -43,42 +48,62 @@ def set_link_text(record)
   end  
 end
 
+def fix_clinicalkey_links(record)
+  newrec = MARC::Record.new()
+  newrec.leader = record.leader
+  record.each do |field|
+    # Omit 856 if subfield 3 is not "ClinicalKey"
+    # or if subfield u has ".edu" in the domain
+    # or the URL doesn't match "www.clinicalkey.com/" (including trailing slash).
+    newrec.append(field) unless (field.tag == '856' && (field['3'] != 'ClinicalKey' || field['u'] =~ /https?:\/\/.*\.edu\// || (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?))
+  end
+ newrec
+end
+
 def add_holding_location(record)
   location = 'dyk.pubpcs'
   classifier = 'E-book'
-  record.append(MARC::DataField.new('852', '', '', ['a', MARC_CODE], ['b', location], ['h', classifier]))
+  record.append(MARC::DataField.new('852', " ", " ", ['a', MARC_CODE], ['b', location], ['h', classifier]))
   record
 end
 
 def add_control_number(record)
   scn = record['001'].value
-  record.append(MARC::DataField.new('035', '', '', ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
+  record.append(MARC::DataField.new('035', " ", " ", ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
   record
 end
 
+### Use source to treat records differently based on vendor.
 def process_records(source, marc, test) 
   source = resolve_source(source) || source
-  marc_out = OUT + "kumc_ebooks_" + source
+  # Signify OCLC encoding for import script. 
+  source == "Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
+  marc_out = OUT + "kumc_ebooks_" + source + extnsn
   mode = test ? "Test" : "Normal"
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
   end
-  reader = MARC::Reader.new(marc)
+  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :internal_encoding => "UTF-8", :invalid => :replace, :replace => "")
   writer = MARC::Writer.new(marc_out)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
   for record in reader
+    # Do record enhancements
     newrecord = add_control_number(record)
-    newrecord = add_holding_location(record)     
-    
-    ### Use source to treat records differently based on vendor.
-    
-		### Uncomment to set link text in 856.
-		### We're going to rely on VuFind instead. ###
-		#     newrecord = set_link_text(record)
-		###
-		
-    writer.write(newrecord)
+    newrecord = add_holding_location(newrecord)
+    if source == "Clinical_Key"
+      newrecord = fix_clinicalkey_links(newrecord)
+    end 
+        
+    # Re-sort the tags in the record after appending fields.
+    newrecord.fields.sort_by!{|f| f.tag}
+          
+    begin
+      writer.write(newrecord)
+    rescue MARC::Exception => e
+      STDERR.puts e.message
+      STDERR.puts e.backtrace.inspect
+    end   
     
     # Log 001 source control number
     logfile.puts record['001'].value
@@ -166,5 +191,3 @@ def do_commandline_opts
 end
 
 do_commandline_opts
-
-
