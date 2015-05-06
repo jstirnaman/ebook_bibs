@@ -27,8 +27,8 @@ SOURCES = {
 
 def resolve_source(source)
 	m = SOURCES
-	source = source.strip.gsub(/\W/i, "")
-	m[source]
+	source = source.strip.gsub(/\W/i, "").downcase
+	m[source] || STDERR.puts("ebooks was unable to resolve the source name #{source}")
 end
 
 def set_link_text(record)
@@ -75,6 +75,7 @@ end
 
 ### Use source to treat records differently based on vendor.
 def process_records(source, marc, test) 
+  STDOUT.puts "Processing..."
   source = resolve_source(source) || source
   # Signify OCLC encoding for import script. 
   source == "Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
@@ -121,6 +122,28 @@ def process_records(source, marc, test)
   end
 end
 
+def commandline_help
+  STDOUT.puts <<-EOF
+  ebooks [OPTION] ... MARC-file
+
+  -h, --help:
+     show help
+
+  --source AccessMedicine:
+     Required when reading input from stdin.
+     record source, publisher, or vendor. Used as value in MARC tag 710. 
+     One of: #{SOURCES.keys.join(', ')}
+     You can add your own name mappings.
+
+  MARC-file or stream from stdin containing a string of MARC records.
+    ex., 
+      From a file:
+        ruby ebooks.rb AccessMedicine.mrc
+      From stdin:
+        curl http://www.accessusercenter.com/wp-content/uploads/2014/07/AccessMedicine.mrc | ruby ebooks.rb -s accessmedicine
+  EOF
+end
+
 def do_commandline_opts
 	opts = GetoptLong.new(
 		[ '--help', '-h', GetoptLong::NO_ARGUMENT ],
@@ -137,25 +160,7 @@ def do_commandline_opts
 	opts.each do |opt, arg|
 		case opt
 			when '--help'
-				STDOUT.puts <<-EOF
-				ebooks [OPTION] ... MARC-file
-
-				-h, --help:
-					 show help
-
-				--source AccessMedicine:
-					 record source, publisher, or vendor. Used as value in MARC tag 710. 
-					 One of: #{SOURCES.keys.join(', ')}
-					 You can add your own name mappings.
-
-				MARC-file or stream from stdin containing a string of MARC records.
-					ex., 
-						From a file:
-							ruby ebooks.rb AccessMedicine.mrc
-						From stdin:
-							curl http://www.accessusercenter.com/wp-content/uploads/2014/07/AccessMedicine.mrc | ruby ebooks.rb -s accessmedicine
-
-							EOF
+        commandline_help			
 			when '--source'
 				source = arg
 			when '--test'
@@ -174,15 +179,19 @@ def do_commandline_opts
       begin
         marc = StringIO.new(ARGF.read)
       rescue
-        STDERR.puts "ebooks could not read input from stdin (try --help)."
+        STDERR.puts "ebooks could not read input from STDIN."
+        commandline_help
         exit 1 
       end
     else
-      STDERR.puts "ebooks --source is required when reading input from stdin."
+      STDERR.puts "No source file was specified for STDIN."
+      commandline_help
       exit 1 
     end
   else
+    # Guess source from file name.
     source ||= ARGV[0].split('/').last.gsub(/\..*$/, '')
+    STDOUT.puts "Using source: #{source}" unless @quiet
     marc = StringIO.new(ARGF.read)
   end
 
