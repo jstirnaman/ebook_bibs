@@ -51,8 +51,11 @@ end
 def fix_clinicalkey_links(record)
   newrec = MARC::Record.new()
   newrec.leader = record.leader
-  for f in record
-    newrec.append(f) unless (f.tag == '856' && f['u'] =~ /\.com\.au\//)
+  record.each do |field|
+    # Omit 856 if subfield 3 is not "ClinicalKey"
+    # or if subfield u has ".edu" in the domain
+    # or the URL doesn't match "www.clinicalkey.com/" (including trailing slash).
+    newrec.append(field) unless (field.tag == '856' && (field['3'] != 'ClinicalKey' || field['u'] =~ /https?:\/\/.*\.edu\// || (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?))
   end
  newrec
 end
