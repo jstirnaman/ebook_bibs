@@ -15,6 +15,7 @@ TEST_SOURCE = "testingsource"
 # Normalized MARC Code assigned for your organization. 
 # http://www.loc.gov/marc/organizations/org-search.php
 MARC_CODE = "kum"
+PROXY_PREFIX = "https://login.proxy.kumc.edu/login/?url="
 TEST_MARC_FIXTURE = "./tests/fixtures/vufindready.voyout.mrc.20140818.mrc"
 SOURCES = {
   "testingsource" => "TESTING_SOURCE",
@@ -25,39 +26,10 @@ SOURCES = {
   "springerlink" => "SpringerLink"
 }
 
-def resolve_source(source)
-	m = SOURCES
-	source = source.strip.gsub(/\W/i, "").downcase
-	m[source] || STDERR.puts("ebooks was unable to resolve the source name #{source}")
-end
-
-def set_link_text(record)
-  if record['fields'].assoc('856')
-    record = record.to_marchash
-    link_text = 'Connect to electronic text'
-    record['fields'].map! do |field|
-			if field.values_at(0, 1, 2) == ['856', '4', '0']
-				field[3].delete_if {|subfield| subfield[0] == 'z'}
-				field[3] << ['z', link_text]
-				field
-			else
-				field
-			end
-		end
-		newrecord = MARC::Record.new_from_marchash(record)
-  end  
-end
-
-def fix_clinicalkey_links(record)
-  newrec = MARC::Record.new()
-  newrec.leader = record.leader
-  record.each do |field|
-    # Omit 856 if subfield 3 is not "ClinicalKey"
-    # or if subfield u has ".edu" in the domain
-    # or the URL doesn't match "www.clinicalkey.com/" (including trailing slash).
-    newrec.append(field) unless (field.tag == '856' && (field['3'] != 'ClinicalKey' || field['u'] =~ /https?:\/\/.*\.edu\// || (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?))
-  end
- newrec
+def add_control_number(record)
+  scn = record['001'].value
+  record.append(MARC::DataField.new('035', " ", " ", ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
+  record
 end
 
 def add_holding_location(record)
@@ -67,24 +39,81 @@ def add_holding_location(record)
   record
 end
 
-def add_control_number(record)
-  scn = record['001'].value
-  record.append(MARC::DataField.new('035', " ", " ", ['a', "(#{MARC_CODE})#{DATESTAMP}#{scn}"] ))
-  record
+def add_link_prefix(record)
+  if record.fields("856")
+    record = record.to_marchash
+    record['fields'].map! do |field|
+      if ((field.values_at(0, 1, 2) == ['856', '4', '0']) && field[3])
+        field[3].map! do |subfield| 
+          if subfield[0] == 'u'
+            url = subfield[1].insert(0, PROXY_PREFIX)
+            subfield = subfield.replace(['u', url])
+          else
+            subfield
+          end
+        end
+      end
+      field
+    end
+    newrecord = MARC::Record.new_from_marchash(record)
+  end   
+end
+
+def fix_clinicalkey_links(record)
+  newrecord = MARC::Record.new()
+  newrecord.leader = record.leader
+  record.each do |field|
+    # Omit 856 if subfield 3 is not "ClinicalKey"
+    # or if subfield u has ".edu" in the domain
+    # or the URL doesn't match "www.clinicalkey.com/" (including trailing slash).
+      return if field.tag == '856' && (field['y'] =~ /^Clinical.*Key.*$/).nil? && (field['3']  =~ /^Clinical.*Key.*$/).nil?
+      return if field.tag == '856' && field['u'] =~ /https?:\/\/.*\.edu\//
+      return if field.tag == '856' && (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?
+    # Else
+      newrecord.append(field)
+  end
+ newrecord
+end
+
+def resolve_source(source)
+  m = SOURCES
+  source = source.strip.gsub(/\W/i, "").downcase
+  m[source] || STDERR.puts("ebooks was unable to resolve the source name #{source}")
+end
+
+def set_link_text(record)
+  if record.fields("856")
+    record = record.to_marchash
+    link_text = 'Connect to electronic text'
+    record['fields'].map! do |field|
+      if (field.values_at(0, 1, 2) == ['856', '4', '0']) && field[3]
+        field[3].delete_if {|subfield| subfield[0] == 'z'}
+        field[3] << ['z', link_text]
+      end
+      field
+    end
+    newrecord = MARC::Record.new_from_marchash(record)
+  end  
 end
 
 ### Use source to treat records differently based on vendor.
 def process_records(source, marc, test) 
   STDOUT.puts "Processing..."
   source = resolve_source(source) || source
-  # Signify OCLC encoding for import script. 
-  source == "Clinical_Key" ? extnsn = ".oclc" : extnsn = ".mrc" 
+  # Signify OCLC encoding for import script.
+  if source == "Clinical_Key"
+    extnsn = ".oclc"
+    external_encoding = "cp866"
+  else
+    extnsn = ".mrc"
+    external_encoding = "UTF-8"
+  end
   marc_out = OUT + "kumc_ebooks_" + source + extnsn
   mode = test ? "Test" : "Normal"
   unless @quiet
     STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
   end
-  reader = MARC::Reader.new(marc, :external_encoding => "UTF-8", :internal_encoding => "UTF-8", :invalid => :replace, :replace => "")
+  reader = MARC::Reader.new(marc, :external_encoding => external_encoding, :internal_encoding => "UTF-8", :invalid => :replace, :replace => "")
   writer = MARC::Writer.new(marc_out)
   logfile = File.open(LOGFILE, 'ab')
   counter = 0
@@ -94,8 +123,11 @@ def process_records(source, marc, test)
     newrecord = add_holding_location(newrecord)
     if source == "Clinical_Key"
       newrecord = fix_clinicalkey_links(newrecord)
-    end 
-        
+    end
+    newrecord = add_link_prefix(newrecord)
+    newrecord = set_link_text(newrecord)
+
+
     # Re-sort the tags in the record after appending fields.
     newrecord.fields.sort_by!{|f| f.tag}
           
