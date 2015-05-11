@@ -66,11 +66,10 @@ def fix_clinicalkey_links(record)
     # Omit 856 if subfield 3 is not "ClinicalKey"
     # or if subfield u has ".edu" in the domain
     # or the URL doesn't match "www.clinicalkey.com/" (including trailing slash).
-      return if field.tag == '856' && (field['y'] =~ /^Clinical.*Key.*$/).nil? && (field['3']  =~ /^Clinical.*Key.*$/).nil?
-      return if field.tag == '856' && field['u'] =~ /https?:\/\/.*\.edu\//
-      return if field.tag == '856' && (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?
-    # Else
-      newrecord.append(field)
+    next if field.tag == '856' && (field['y'] =~ /^Clinical.*Key.*$/).nil? && (field['3']  =~ /^Clinical.*Key.*$/).nil?
+    next if field.tag == '856' && (field['u'] =~ /https?:\/\/.*\.edu\//)
+    next if field.tag == '856' && (field['u'] =~ /https?:\/\/www\.clinicalkey\.com\//).nil?
+    newrecord.append(field)
   end
  newrecord
 end
@@ -97,21 +96,20 @@ def set_link_text(record)
 end
 
 ### Use source to treat records differently based on vendor.
-def process_records(source, marc, test) 
+def process_records(source, format, marc, test) 
   STDOUT.puts "Processing..."
   source = resolve_source(source) || source
-  # Signify OCLC encoding for import script.
-  if source == "Clinical_Key"
-    extnsn = ".oclc"
+  # Set encoding based on format or file extension.
+  if format == "oclc"
     external_encoding = "cp866"
   else
-    extnsn = ".mrc"
     external_encoding = "UTF-8"
   end
-  marc_out = OUT + "kumc_ebooks_" + source + extnsn
+  extension = ".#{format}"
+  marc_out = OUT + "kumc_ebooks_" + source + extension
   mode = test ? "Test" : "Normal"
   unless @quiet
-    STDOUT.puts "Processing MARC from " + source + " with Mode: " + mode
+    STDOUT.puts "Processing #{format.upcase} from " + source + " with Mode: " + mode
   end
   reader = MARC::Reader.new(marc, :external_encoding => external_encoding, :internal_encoding => "UTF-8", :invalid => :replace, :replace => "")
   writer = MARC::Writer.new(marc_out)
@@ -223,11 +221,13 @@ def do_commandline_opts
   else
     # Guess source from file name.
     source ||= ARGV[0].split('/').last.gsub(/\..*$/, '')
+    # File extension
+    extension = ARGV[0].split('/').last.split('.').last
     STDOUT.puts "Using source: #{source}" unless @quiet
     marc = StringIO.new(ARGF.read)
   end
 
-  process_records(source, marc, test)
+  process_records(source, extension, marc, test)
 
 end
 
